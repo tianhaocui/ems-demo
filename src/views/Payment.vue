@@ -3,7 +3,7 @@
     <!-- Logo -->
     <div class="logo-header">
       <div class="logo-box">
-        <img src="/china-post-logo.png" alt="China Post" class="logo-img" />
+        <img :src="logoUrl" alt="China Post" class="logo-img" />
       </div>
     </div>
 
@@ -170,6 +170,8 @@ import { usePackageStore } from '../stores/package'
 
 const router = useRouter()
 const packageStore = usePackageStore()
+
+const logoUrl = new URL('/china-post-logo.png', import.meta.url).href
 
 const packageData = computed(() => packageStore.currentPackage)
 
