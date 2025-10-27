@@ -437,9 +437,9 @@ onUnmounted(() => {
 
 .step.completed .step-number,
 .step.active .step-number {
-  background: #1e293b;
+  background: #753BBD;
   color: white;
-  border-color: #1e293b;
+  border-color: #753BBD;
 }
 
 .step-label {

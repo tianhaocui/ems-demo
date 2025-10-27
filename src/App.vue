@@ -16,7 +16,7 @@
 
 body {
   font-family: var(--font-family);
-  background: linear-gradient(135deg, #753BBD 0%, #5B2D94 100%);
+  background: #1C1C23;
   background-attachment: fixed;
   min-height: 100vh;
   font-size: var(--font-size-base);
