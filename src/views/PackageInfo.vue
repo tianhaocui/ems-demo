@@ -77,7 +77,7 @@
             <span class="tax-title">Calculated Import Tax</span>
             <span class="tax-amount">{{ packageData.customsDuty }}</span>
           </div>
-          <p class="tax-note">Tax calculated at 15% of package value plus $5 per kilogram</p>
+          <p class="tax-note">Tax calculated at 10% of package value</p>
         </div>
 
         <!-- 操作按钮 -->
