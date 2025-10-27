@@ -23,18 +23,29 @@
         @submit.prevent="handleSearch"
       >
         <el-form-item label="Tracking Number" prop="trackingNumber">
-          <el-input
-            ref="trackingInputRef"
-            v-model="form.trackingNumber"
-            placeholder="e.g., EA12345678901CN"
-            size="large"
-            clearable
-            @keyup.enter="handleSearch"
-          >
-            <template #prefix>
-              <el-icon><DocumentCopy /></el-icon>
-            </template>
-          </el-input>
+          <div class="input-with-scan">
+            <el-input
+              ref="trackingInputRef"
+              v-model="form.trackingNumber"
+              placeholder="e.g., EA12345678901CN"
+              size="large"
+              clearable
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><DocumentCopy /></el-icon>
+              </template>
+            </el-input>
+            <el-button 
+              v-if="isMobile"
+              type="primary" 
+              size="large" 
+              class="scan-button"
+              @click="showScanner = true"
+            >
+              <el-icon><Camera /></el-icon>
+            </el-button>
+          </div>
           <div class="input-hint">
             Format: EA/EC/EE + 11 digits + CN or LV/LX/RV/RX + 9 digits + CN
           </div>
@@ -89,21 +100,53 @@
         </el-alert>
       </div>
     </el-card>
+
+    <!-- 扫描器对话框 -->
+    <el-dialog
+      v-model="showScanner"
+      title="扫描快递单号"
+      :width="isMobile ? '95%' : '500px'"
+      :fullscreen="isMobile"
+      @close="stopScanner"
+    >
+      <div class="scanner-container">
+        <div id="qr-reader" ref="qrReaderRef"></div>
+        <div v-if="scanError" class="scan-error">
+          <el-alert type="error" :closable="false">
+            {{ scanError }}
+          </el-alert>
+        </div>
+        <div class="scan-tips">
+          <el-icon><InfoFilled /></el-icon>
+          <span>请将摄像头对准条形码或二维码</span>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showScanner = false">取消</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { usePackageStore } from '../stores/package'
+import { Html5Qrcode } from 'html5-qrcode'
 
 const router = useRouter()
 const packageStore = usePackageStore()
 
 const formRef = ref(null)
 const trackingInputRef = ref(null)
+const qrReaderRef = ref(null)
 const loading = ref(false)
+const showScanner = ref(false)
+const scanError = ref('')
+const isMobile = ref(false)
+
+let html5QrCode = null
 
 const form = ref({
   trackingNumber: '',
@@ -191,11 +234,102 @@ const handleSearch = async () => {
   })
 }
 
+// 检测是否是移动设备
+const checkMobile = () => {
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768
+}
+
+// 开始扫描
+const startScanner = async () => {
+  try {
+    scanError.value = ''
+    
+    // 初始化扫描器
+    html5QrCode = new Html5Qrcode('qr-reader')
+    
+    const config = {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0,
+      formatsToSupport: [
+        0, // QR_CODE
+        13, // CODE_128
+        3, // EAN_13
+        2, // EAN_8
+        14, // CODE_39
+        15  // CODE_93
+      ]
+    }
+    
+    await html5QrCode.start(
+      { facingMode: 'environment' }, // 使用后置摄像头
+      config,
+      onScanSuccess,
+      onScanError
+    )
+  } catch (err) {
+    console.error('扫描器启动失败:', err)
+    scanError.value = '无法启动摄像头，请检查权限设置'
+  }
+}
+
+// 停止扫描
+const stopScanner = async () => {
+  if (html5QrCode && html5QrCode.isScanning) {
+    try {
+      await html5QrCode.stop()
+      html5QrCode.clear()
+    } catch (err) {
+      console.error('停止扫描失败:', err)
+    }
+  }
+  html5QrCode = null
+}
+
+// 扫描成功回调
+const onScanSuccess = (decodedText) => {
+  // 填充到输入框
+  form.value.trackingNumber = decodedText.toUpperCase()
+  
+  ElMessage.success('扫描成功！')
+  
+  // 关闭扫描器
+  showScanner.value = false
+}
+
+// 扫描错误回调（静默处理）
+const onScanError = () => {
+  // 不需要显示错误，因为扫描过程中会持续触发
+}
+
+// 监听扫描器对话框的显示状态
+watch(showScanner, (newValue) => {
+  if (newValue) {
+    // 延迟启动扫描器，等待DOM渲染
+    setTimeout(() => {
+      startScanner()
+    }, 300)
+  } else {
+    stopScanner()
+  }
+})
+
 // 页面加载时聚焦到跟踪号输入框
 onMounted(() => {
+  checkMobile()
+  
   setTimeout(() => {
     trackingInputRef.value?.focus()
   }, 300)
+  
+  // 监听窗口大小变化
+  window.addEventListener('resize', checkMobile)
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  stopScanner()
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
@@ -325,6 +459,83 @@ onMounted(() => {
 :deep(.el-button--primary:hover) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(117, 59, 189, 0.4);
+}
+
+/* 扫描按钮样式 */
+.input-with-scan {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.input-with-scan .el-input {
+  flex: 1;
+}
+
+.scan-button {
+  flex-shrink: 0;
+  min-width: 50px;
+  height: 40px;
+  padding: 0 15px;
+  border-radius: var(--radius-md);
+}
+
+.scan-button .el-icon {
+  font-size: 20px;
+}
+
+/* 扫描器容器样式 */
+.scanner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-md);
+}
+
+#qr-reader {
+  width: 100%;
+  max-width: 500px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.scan-error {
+  margin-top: var(--spacing-md);
+  width: 100%;
+}
+
+.scan-tips {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.scan-tips .el-icon {
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .scanner-container {
+    padding: var(--spacing-sm);
+  }
+  
+  #qr-reader {
+    max-width: 100%;
+  }
+  
+  .scan-button {
+    height: 40px;
+    padding: 0 12px;
+  }
 }
 </style>
 
