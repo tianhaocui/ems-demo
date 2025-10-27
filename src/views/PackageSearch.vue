@@ -1,8 +1,34 @@
 <template>
   <div class="package-search-container">
-    <div class="logo-section">
-      <h1 class="main-title">EMS Customs Duty Payment</h1>
-      <p class="main-subtitle">United States Customs Processing Service</p>
+    <!-- Logo -->
+    <div class="logo-header">
+      <div class="logo-box">
+        <img :src="logoUrl" alt="China Post" class="logo-img" />
+      </div>
+    </div>
+
+    <!-- 页面标题 -->
+    <div class="page-title-section">
+      <h1 class="main-title">Import Tax Payment</h1>
+      <p class="main-subtitle">Pay your customs duties in three simple steps</p>
+    </div>
+
+    <!-- 步骤指示器 -->
+    <div class="steps-container">
+      <div class="step active">
+        <div class="step-number">1</div>
+        <div class="step-label">Tracking</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-label">Package Info</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-label">Payment</div>
+      </div>
     </div>
     
     <el-card class="search-card" shadow="hover">
@@ -101,10 +127,10 @@
       </div>
     </el-card>
 
-    <!-- 扫描器对话框 -->
+    <!-- Scanner Dialog -->
     <el-dialog
       v-model="showScanner"
-      title="扫描快递单号"
+      title="Scan Tracking Number"
       :width="isMobile ? '95%' : '500px'"
       :fullscreen="isMobile"
       @close="stopScanner"
@@ -118,11 +144,11 @@
         </div>
         <div class="scan-tips">
           <el-icon><InfoFilled /></el-icon>
-          <span>请将摄像头对准条形码或二维码</span>
+          <span>Point your camera at the barcode or QR code</span>
         </div>
       </div>
       <template #footer>
-        <el-button @click="showScanner = false">取消</el-button>
+        <el-button @click="showScanner = false">Cancel</el-button>
       </template>
     </el-dialog>
   </div>
@@ -137,6 +163,8 @@ import { Html5Qrcode } from 'html5-qrcode'
 
 const router = useRouter()
 const packageStore = usePackageStore()
+
+const logoUrl = new URL('/china-post-logo.png', import.meta.url).href
 
 const formRef = ref(null)
 const trackingInputRef = ref(null)
@@ -268,8 +296,8 @@ const startScanner = async () => {
       onScanError
     )
   } catch (err) {
-    console.error('扫描器启动失败:', err)
-    scanError.value = '无法启动摄像头，请检查权限设置'
+    console.error('Scanner start failed:', err)
+    scanError.value = 'Unable to start camera. Please check your permissions.'
   }
 }
 
@@ -291,7 +319,7 @@ const onScanSuccess = (decodedText) => {
   // 填充到输入框
   form.value.trackingNumber = decodedText.toUpperCase()
   
-  ElMessage.success('扫描成功！')
+  ElMessage.success('Scanned successfully!')
   
   // 关闭扫描器
   showScanner.value = false
@@ -336,31 +364,100 @@ onUnmounted(() => {
 <style scoped>
 .package-search-container {
   width: 100%;
-  max-width: 650px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
-.logo-section {
+/* Logo Header */
+.logo-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.logo-box {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  display: inline-block;
+}
+
+.logo-img {
+  height: 80px;
+  display: block;
+}
+
+/* Page Title Section */
+.page-title-section {
   text-align: center;
   margin-bottom: var(--spacing-xl);
-  background: var(--bg-white);
-  padding: var(--spacing-xl) var(--spacing-lg);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
-.logo-section .main-title {
-  font-size: var(--font-size-3xl);
+.main-title {
+  font-size: 32px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: white;
   margin-bottom: var(--spacing-sm);
-  letter-spacing: -0.5px;
 }
 
-.logo-section .main-subtitle {
+.main-subtitle {
   font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Steps Container */
+.steps-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-2xl);
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-gray-100);
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  border: 2px solid var(--border-color);
+}
+
+.step.completed .step-number,
+.step.active .step-number {
+  background: #1e293b;
+  color: white;
+  border-color: #1e293b;
+}
+
+.step-label {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+}
+
+.step.completed .step-label,
+.step.active .step-label {
+  color: white;
+  font-weight: 600;
+}
+
+.step-line {
+  width: 80px;
+  height: 2px;
+  background: var(--border-color);
+  margin: 0 var(--spacing-sm);
+  margin-bottom: 32px;
 }
 
 .search-card {
