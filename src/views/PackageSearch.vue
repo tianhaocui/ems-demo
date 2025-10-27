@@ -34,96 +34,98 @@
     <el-card class="search-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <h2>
-            <el-icon><Box /></el-icon>
-            Package Lookup
-          </h2>
+          <div class="card-title-section">
+            <h2 class="card-main-title">
+              <el-icon><Box /></el-icon>
+              Enter Tracking Number
+            </h2>
+            <p class="card-subtitle-text">Enter your package tracking number to retrieve details</p>
+          </div>
         </div>
       </template>
 
-      <el-form 
-        ref="formRef" 
-        :model="form" 
-        :rules="rules" 
-        label-position="top"
-        @submit.prevent="handleSearch"
-      >
-        <el-form-item label="Tracking Number" prop="trackingNumber">
-          <div class="input-with-scan">
-            <el-input
-              ref="trackingInputRef"
-              v-model="form.trackingNumber"
-              placeholder="e.g., EA12345678901CN"
+      <div class="search-content">
+        <el-form 
+          ref="formRef" 
+          :model="form" 
+          :rules="rules" 
+          label-position="top"
+          @submit.prevent="handleSearch"
+        >
+          <el-form-item label="Tracking Number" prop="trackingNumber">
+            <div class="input-with-scan">
+              <el-input
+                ref="trackingInputRef"
+                v-model="form.trackingNumber"
+                placeholder="e.g., EA12345678901CN"
+                size="large"
+                clearable
+                @keyup.enter="handleSearch"
+              >
+                <template #prefix>
+                  <el-icon><DocumentCopy /></el-icon>
+                </template>
+              </el-input>
+              <el-button 
+                v-if="isMobile"
+                type="primary" 
+                size="large" 
+                class="scan-button"
+                @click="showScanner = true"
+              >
+                <el-icon><Camera /></el-icon>
+              </el-button>
+            </div>
+          </el-form-item>
+
+          <el-form-item label="Destination City" prop="destinationCity">
+            <el-autocomplete
+              v-model="form.destinationCity"
+              :fetch-suggestions="querySearch"
+              placeholder="Enter city name"
               size="large"
               clearable
-              @keyup.enter="handleSearch"
+              style="width: 100%"
             >
               <template #prefix>
-                <el-icon><DocumentCopy /></el-icon>
+                <el-icon><Location /></el-icon>
               </template>
-            </el-input>
+            </el-autocomplete>
+          </el-form-item>
+
+          <el-form-item>
             <el-button 
-              v-if="isMobile"
               type="primary" 
               size="large" 
-              class="scan-button"
-              @click="showScanner = true"
+              :loading="loading"
+              style="width: 100%"
+              @click="handleSearch"
             >
-              <el-icon><Camera /></el-icon>
+              <el-icon v-if="!loading"><Search /></el-icon>
+              Look Up Package
             </el-button>
-          </div>
-          <div class="input-hint">
-            Format: EA/EC/EE + 11 digits + CN or LV/LX/RV/RX + 9 digits + CN
-          </div>
-        </el-form-item>
+          </el-form-item>
+        </el-form>
 
-        <el-form-item label="Destination City" prop="destinationCity">
-          <el-autocomplete
-            v-model="form.destinationCity"
-            :fetch-suggestions="querySearch"
-            placeholder="Enter city name"
-            size="large"
-            clearable
-            style="width: 100%"
+        <div class="example-hints">
+          <el-alert 
+            title="Example Tracking Numbers" 
+            type="info" 
+            :closable="false"
+            show-icon
           >
-            <template #prefix>
-              <el-icon><Location /></el-icon>
-            </template>
-          </el-autocomplete>
-        </el-form-item>
-
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            size="large" 
-            :loading="loading"
-            style="width: 100%"
-            @click="handleSearch"
-          >
-            <el-icon v-if="!loading"><Search /></el-icon>
-            Look Up Package
-          </el-button>
-        </el-form-item>
-      </el-form>
-
-      <div class="example-hints">
-        <el-alert 
-          title="Example Tracking Numbers" 
-          type="info" 
-          :closable="false"
-          show-icon
-        >
-          <div class="examples">
-            <el-tag 
-              v-for="example in exampleNumbers" 
-              :key="example"
-              class="example-tag"
-              @click="fillExample(example)"
-            >
-              {{ example }}
-            </el-tag>
-          </div>
-        </el-alert>
+            <div class="examples">
+              <el-tag 
+                v-for="example in exampleNumbers" 
+                :key="example"
+                class="example-tag"
+                @click="fillExample(example)"
+              >
+                {{ example }}
+              </el-tag>
+            </div>
+          </el-alert>
+        </div>
       </div>
     </el-card>
 
@@ -473,15 +475,22 @@ onUnmounted(() => {
 }
 
 :deep(.el-card__body) {
+  padding: 0;
+}
+
+.search-content {
   padding: var(--spacing-xl);
 }
 
 .card-header {
-  text-align: center;
-  padding: var(--spacing-sm) 0;
+  padding: var(--spacing-md) 0;
 }
 
-.card-header h2 {
+.card-title-section {
+  text-align: center;
+}
+
+.card-main-title {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -489,10 +498,18 @@ onUnmounted(() => {
   font-size: var(--font-size-xl);
   color: var(--text-primary);
   font-weight: 600;
+  margin: 0 0 var(--spacing-sm) 0;
 }
 
-.card-header h2 .el-icon {
+.card-main-title .el-icon {
   font-size: 24px;
+}
+
+.card-subtitle-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }
 
 .input-hint {
@@ -563,18 +580,23 @@ onUnmounted(() => {
   display: flex;
   gap: var(--spacing-sm);
   align-items: center;
+  width: 100%;
 }
 
 .input-with-scan .el-input {
   flex: 1;
+  width: auto;
 }
 
 .scan-button {
   flex-shrink: 0;
-  min-width: 50px;
+  width: 50px;
   height: 40px;
-  padding: 0 15px;
+  padding: 0;
   border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .scan-button .el-icon {
